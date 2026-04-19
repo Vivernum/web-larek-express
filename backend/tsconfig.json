@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+    "ignoreDeprecations": "6.0",
 		/* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
 		"target": "es6",
 		/* Modules */
