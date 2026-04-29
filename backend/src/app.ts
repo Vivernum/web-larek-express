@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 import errorsHandler from './middlewares/error-handler';
 import router from './routes/index';
@@ -17,8 +18,12 @@ const publicPath = path.join(__dirname, '../public');
 
 app.use(requestLogger);
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.static(publicPath));
+app.use(cookieParser());
 app.use(express.json());
 
 app.use('/', router);

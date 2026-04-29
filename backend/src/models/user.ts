@@ -2,7 +2,10 @@ import mongoose from 'mongoose';
 import { IUser, Token } from '../types/user';
 
 const tokenSchema = new mongoose.Schema<Token>({
-  token: String,
+  token: {
+    type: String,
+    _id: false,
+  },
 });
 
 const userSchema = new mongoose.Schema<IUser>({
@@ -22,10 +25,13 @@ const userSchema = new mongoose.Schema<IUser>({
     type: String,
     required: true,
     minlength: 6,
+    select: false,
   },
-  tokens: [{
-    type: tokenSchema,
-  }],
+  tokens: {
+    type: [tokenSchema],
+    select: false,
+    _id: false,
+  },
 });
 
 export default mongoose.model<IUser>('user', userSchema);
