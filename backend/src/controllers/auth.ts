@@ -8,6 +8,7 @@ import ExistenceError from '../errors/existence-error';
 import User from '../models/user';
 import NotFoundError from '../errors/not-found-error';
 import BadRequestError from '../errors/bad-request-error';
+import UnauthorizedError from '../errors/unauthorized-error';
 
 const accessKey = 'some-secret-access-key';
 const refreshKey = 'some-secret-refresh-key';
@@ -50,14 +51,14 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
     if (error instanceof Error && error.message.includes('E11000')) {
       return next(new ExistenceError(error.message));
     }
-    return next(new IternalError('Internal server error'));
+    return next(new BadRequestError('Bad request'));
   }
 };
 
 export const getCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
   const { authorization } = req.headers;
   if (!authorization) {
-    return next(new NotFoundError('User not found'));
+    return next(new BadRequestError('Bad request'));
   }
 
   const accessToken = authorization.replace('Bearer ', '');
@@ -86,7 +87,7 @@ export const getCurrentUser = async (req: Request, res: Response, next: NextFunc
     }
   }
 
-  return next(new NotFoundError('User not found'));
+  return next(new IternalError('Internal server error'));
 };
 
 export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
@@ -96,12 +97,12 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     const user = await User.findOne({ email }).select('+password -__v');
 
     if (!user) {
-      return next(new NotFoundError('User not found'));
+      return next(new UnauthorizedError('Data is incorrect'));
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return next(new BadRequestError('Bad request'));
+      return next(new UnauthorizedError('Data is incorrect'));
     }
 
     const accessToken = jwt.sign({ _id: user._id }, accessKey, { expiresIn: '10m' });
@@ -147,7 +148,7 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
       return next(new NotFoundError('User not found'));
     }
 
-    const validationResults = await Promise.all(
+    const validationResults = await Promise.allSettled(
       tokens.tokens.map(async (item) => {
         const isValid = await bcrypt.compare(refreshToken, item.token);
         if (isValid) {
@@ -161,7 +162,7 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
       }),
     );
     const successfulDeletion = validationResults.find(
-      (item) => item.isValid && item.modifiedCount > 0,
+      (item) => item.status === 'fulfilled' && item.value.modifiedCount > 0,
     );
 
     if (successfulDeletion) {
@@ -169,7 +170,7 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
     }
     return next(new NotFoundError('User not found'));
   } catch (error) {
-    return next(new IternalError('Internal server error'));
+    return next(new BadRequestError('Bad request'));
   }
 };
 
@@ -183,7 +184,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
       _id: string
     };
   } catch (error) {
-    return next(new NotFoundError('User not found'));
+    return next(new UnauthorizedError('Token is expired'));
   }
 
   try {
@@ -197,7 +198,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
       return next(new NotFoundError('User not found'));
     }
 
-    const validationResults = await Promise.all(
+    const validationResults = await Promise.allSettled(
       tokens.map(async (item) => {
         const isValid = await bcrypt.compare(refreshToken, item.token);
         if (isValid) {
@@ -211,7 +212,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
       }),
     );
     const successfulDeletion = validationResults.find(
-      (item) => item.isValid && item.modifiedCount > 0,
+      (item) => item.status === 'fulfilled' && item.value.modifiedCount > 0,
     );
 
     if (successfulDeletion) {
