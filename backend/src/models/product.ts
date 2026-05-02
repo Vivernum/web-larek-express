@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import deleteProductFromFS from '../utils/deleteFromFS';
 import { IImage, IProduct } from '../types/product';
 
 const imageSchema = new mongoose.Schema<IImage>({
@@ -34,5 +35,7 @@ const productSchema = new mongoose.Schema<IProduct>({
     default: null,
   },
 });
+
+productSchema.post('findOneAndDelete', deleteProductFromFS);
 
 export default mongoose.model<IProduct>('product', productSchema);

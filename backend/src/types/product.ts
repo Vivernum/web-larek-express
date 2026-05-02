@@ -1,3 +1,5 @@
+import { HydratedDocument } from 'mongoose';
+
 export interface IImage {
   fileName: string;
   originalName: string;
@@ -10,3 +12,5 @@ export interface IProduct {
   description: string;
   price: number | null;
 }
+
+export type ProductDocument = HydratedDocument<IProduct>;
