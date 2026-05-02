@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { CronJob } from 'cron';
 
 import errorsHandler from './middlewares/error-handler';
 import router from './routes/index';
@@ -10,6 +11,7 @@ import requestLogger from './middlewares/requestLogger';
 import errorLogger from './middlewares/errorLogger';
 
 import { DB_ADDRESS, PORT } from './config';
+import cleanUpTemp from './jobs/cleanUpTemp';
 
 const app = express();
 mongoose.connect(DB_ADDRESS as string);
@@ -29,5 +31,12 @@ app.use(express.json());
 app.use('/', router);
 
 app.use(errorLogger, errorsHandler);
+
+const job = new CronJob(
+  '*/1 * * * *',
+  cleanUpTemp,
+  null,
+  true,
+);
 
 app.listen(PORT, () => console.log('Server is running'));
