@@ -7,10 +7,6 @@ import IternalError from '../errors/iternal-error';
 
 const postOrder = async (req: Request, res: Response, next: NextFunction) => {
   const {
-    payment,
-    email,
-    phone,
-    address,
     total,
     items,
   } = req.body;
@@ -21,20 +17,11 @@ const postOrder = async (req: Request, res: Response, next: NextFunction) => {
       { $match: { price: { $ne: null } } },
     ]);
 
-    const isPhoneValid = typeof phone === 'string';
-    const isAdressValid = typeof address === 'string';
-    const isEmailValid = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email);
-    const isPaymentValid = payment === 'card' || payment === 'online';
-
     const totalPrice = result.reduce((acc, product) => acc + product.price!, 0);
 
     if (
       result.length !== items.length
       || total !== totalPrice
-      || !isPhoneValid
-      || !isAdressValid
-      || !isEmailValid
-      || !isPaymentValid
     ) {
       return next(new BadRequestError('Bad request'));
     }

@@ -4,6 +4,7 @@ import path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { CronJob } from 'cron';
+import { errors } from 'celebrate';
 
 import errorsHandler from './middlewares/error-handler';
 import router from './routes/index';
@@ -30,7 +31,7 @@ app.use(express.json());
 
 app.use('/', router);
 
-app.use(errorLogger, errorsHandler);
+app.use(errorLogger, errors(), errorsHandler);
 
 const job = new CronJob(
   '*/1 * * * *',
