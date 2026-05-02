@@ -3,15 +3,13 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 
+import { JWT_ACCESS_SECRET_KEY, JWT_REFRESH_SECRET_KEY } from '../config';
 import IternalError from '../errors/iternal-error';
 import ExistenceError from '../errors/existence-error';
 import User from '../models/user';
 import NotFoundError from '../errors/not-found-error';
 import BadRequestError from '../errors/bad-request-error';
 import UnauthorizedError from '../errors/unauthorized-error';
-
-const accessKey = 'some-secret-access-key';
-const refreshKey = 'some-secret-refresh-key';
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -24,8 +22,8 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       email,
     });
 
-    const accessToken = jwt.sign({ _id: user._id }, accessKey, { expiresIn: '10m' });
-    const refreshToken = jwt.sign({ _id: user._id }, refreshKey, { expiresIn: '30d' });
+    const accessToken = jwt.sign({ _id: user._id }, JWT_ACCESS_SECRET_KEY!, { expiresIn: '10m' });
+    const refreshToken = jwt.sign({ _id: user._id }, JWT_REFRESH_SECRET_KEY!, { expiresIn: '30d' });
     const hashedRereshToken = await bcrypt.hash(refreshToken, 10);
 
     await User.updateOne(
@@ -65,7 +63,7 @@ export const getCurrentUser = async (req: Request, res: Response, next: NextFunc
   let userId;
 
   try {
-    userId = jwt.verify(accessToken, accessKey) as {
+    userId = jwt.verify(accessToken, JWT_ACCESS_SECRET_KEY!) as {
       _id: string
     };
   } catch (err) {
@@ -105,8 +103,8 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       return next(new UnauthorizedError('Data is incorrect'));
     }
 
-    const accessToken = jwt.sign({ _id: user._id }, accessKey, { expiresIn: '10m' });
-    const refreshToken = jwt.sign({ _id: user._id }, refreshKey, { expiresIn: '7d' });
+    const accessToken = jwt.sign({ _id: user._id }, JWT_ACCESS_SECRET_KEY!, { expiresIn: '10m' });
+    const refreshToken = jwt.sign({ _id: user._id }, JWT_REFRESH_SECRET_KEY!, { expiresIn: '7d' });
     const hashedRereshToken = await bcrypt.hash(refreshToken, 10);
 
     await User.updateOne(
@@ -138,7 +136,7 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
   if (!refreshToken) return next(new BadRequestError('Bad request'));
 
   try {
-    const isTokenValid = jwt.verify(refreshToken, refreshKey) as {
+    const isTokenValid = jwt.verify(refreshToken, JWT_REFRESH_SECRET_KEY!) as {
       _id: string
     };
 
@@ -180,7 +178,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
   let isTokenValid;
 
   try {
-    isTokenValid = jwt.verify(refreshToken, refreshKey) as {
+    isTokenValid = jwt.verify(refreshToken, JWT_REFRESH_SECRET_KEY!) as {
       _id: string
     };
   } catch (error) {
@@ -216,8 +214,8 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
     );
 
     if (successfulDeletion) {
-      const accessToken = jwt.sign({ _id: isTokenValid._id }, accessKey, { expiresIn: '10m' });
-      const newRefreshToken = jwt.sign({ _id: isTokenValid._id }, refreshKey, { expiresIn: '7d' });
+      const accessToken = jwt.sign({ _id: isTokenValid._id }, JWT_ACCESS_SECRET_KEY!, { expiresIn: '10m' });
+      const newRefreshToken = jwt.sign({ _id: isTokenValid._id }, JWT_REFRESH_SECRET_KEY!, { expiresIn: '7d' });
       const hashedRereshToken = await bcrypt.hash(newRefreshToken, 10);
 
       await User.updateOne(
@@ -243,21 +241,5 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
     return next(new NotFoundError('User not found'));
   } catch (err) {
     return next(new NotFoundError('User not found'));
-  }
-};
-
-export const auth = (req: Request, res: Response, next: NextFunction) => {
-  const { authorization } = req.headers;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return next(new UnauthorizedError('Unauthorized'));
-  }
-
-  const token = authorization.replace('Bearer ', '');
-
-  try {
-    jwt.verify(token, accessKey);
-    return next();
-  } catch (error) {
-    return next(new UnauthorizedError('Unauthorized'));
   }
 };

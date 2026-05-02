@@ -6,7 +6,7 @@ import {
   getProducts,
   patchProduct,
 } from '../controllers/product';
-import { auth } from '../controllers/auth';
+import auth from '../middlewares/auth';
 import { validateOjbectId, validateProductBody, validateProductUpdateBody } from '../middlewares/validators';
 
 const productRouter = Router();

@@ -1,4 +1,3 @@
-import { p } from '@faker-js/faker/dist/airline-eVQV6kbz';
 import { celebrate, Joi, Segments } from 'celebrate';
 
 const productSchema = Joi.object({

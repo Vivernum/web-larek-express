@@ -2,9 +2,12 @@ import { Router } from 'express';
 import path from 'path';
 import multer from 'multer';
 import uploadController from '../controllers/upload';
-import { auth } from '../controllers/auth';
+import auth from '../middlewares/auth';
+import BadRequestError from '../errors/bad-request-error';
 
 const uploadRouter = Router();
+
+const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'xml'];
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '../../temp'),
@@ -26,6 +29,16 @@ const fileMiddleware = multer({
   storage,
   limits: {
     fileSize: 1024 * 1024 * 2,
+  },
+  fileFilter: (req, file, callback) => {
+    const isValidMimeType = file.mimetype.includes('image');
+    const extension = path.extname(file.originalname);
+    const isValidExtension = allowedExtensions.includes(extension);
+
+    if (isValidMimeType && isValidExtension) {
+      return callback(null, true);
+    }
+    return callback(new BadRequestError('Invalid file'));
   },
 });
 
